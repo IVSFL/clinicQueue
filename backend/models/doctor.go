@@ -1,0 +1,14 @@
+package models
+
+type Doctor struct {
+	ID             uint   `json:"id" gorm:"primaryKey"`
+	UserID         uint   `json:"user_id"`
+	User           *User  `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	LastName       string `json:"last_name"`
+	FirstName      string `json:"first_name"`
+	MiddleName     string `json:"middle_name"`
+	Specialization string `json:"specialization"`
+	Office         string `json:"office"`
+
+	Queue []Queue `json:"queue" gorm:"foreignKey:DoctorID"`
+}
