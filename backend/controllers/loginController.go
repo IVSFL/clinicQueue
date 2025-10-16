@@ -24,6 +24,19 @@ type RegisterDoctorInput struct {
 	Office         string `json:"office" binding:"required"`
 }
 
+type RegisterAdminInput struct {
+	Email      string `json:"email" binding:"required,email"`
+	Password   string `json:"password" binding:"required,min=6"`
+	LastName   string `json:"last_name" binding:"required"`
+	FirstName  string `json:"first_name" binding:"required"`
+	MiddleName string `json:"middle_name" binding:"required"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
 var secretKey = []byte(os.Getenv("JWT_SECRET"))
 
 func getToken(userID int) (string, error) {
@@ -35,11 +48,11 @@ func getToken(userID int) (string, error) {
 	return token.SignedString(secretKey)
 }
 
-func parseToken(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(tokent *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
-}
+// func parseToken(tokenString string) (*jwt.Token, error) {
+// 	return jwt.Parse(tokenString, func(tokent *jwt.Token) (interface{}, error) {
+// 		return secretKey, nil
+// 	})
+// }
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -95,6 +108,10 @@ func RegisterDoctor(c *gin.Context) {
 		user.Doctor = &doctor
 
 		token, err := getToken(int(user.ID))
+		if err != nil {
+			return err
+		}
+
 		c.JSON(http.StatusCreated, gin.H{
 			"user":  user,
 			"token": token,
@@ -109,5 +126,111 @@ func RegisterDoctor(c *gin.Context) {
 }
 
 func RegisterAdmin(c *gin.Context) {
+	var input RegisterAdminInput
 
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	var existingUser models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email уже используется"})
+	}
+
+	err := config.DB.Transaction(func(tx *gorm.DB) error {
+		hashedPassword, err := hashPassword(input.Password)
+		if err != nil {
+			return err
+		}
+
+		user := models.User{
+			Email:     input.Email,
+			Password:  hashedPassword,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
+
+		admin := models.Admin{
+			UserID:     user.ID,
+			LastName:   input.LastName,
+			FirstName:  input.FirstName,
+			MiddleName: input.MiddleName,
+		}
+		if err := tx.Create(&admin).Error; err != nil {
+			return err
+		}
+
+		user.Admin = &admin
+
+		token, err := getToken(int(user.ID))
+		if err != nil {
+			return err
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"user":  user,
+			"token": token,
+		})
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать администратора"})
+	}
+}
+
+func Login(c *gin.Context) {
+	var input LoginInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.Preload("Doctor").Preload("Admin").Where("email = ?", input.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Такого Email не существует"})
+		return
+	}
+
+	if !checkPasswordHash(input.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пароль введен не верно"})
+		return
+	}
+
+	token, err := getToken(int(user.ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка выдачи токена"})
+		return
+	}
+
+	if user.Doctor != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"token": token,
+			"role":  "doctor",
+			"user": gin.H{
+				"id":             user.ID,
+				"email":          user.Email,
+				"first_name":     user.Doctor.FirstName,
+				"last_name":      user.Doctor.LastName,
+				"middle_name":    user.Doctor.MiddleName,
+				"specialization": user.Doctor.Specialization,
+				"office":         user.Doctor.Office,
+			},
+		})
+	} else if user.Admin != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"token": token,
+			"role":  "admin",
+			"user": gin.H{
+				"id":          user.ID,
+				"email":       user.Email,
+				"first_name":  user.Admin.FirstName,
+				"last_name":   user.Admin.LastName,
+				"middle_name": user.Admin.MiddleName,
+			},
+		})
+	}
 }

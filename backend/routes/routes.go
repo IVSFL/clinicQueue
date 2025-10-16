@@ -2,6 +2,7 @@ package routes
 
 import (
 	"clinicQueue/controllers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,35 +29,36 @@ func RegisterRoutes(r *gin.Engine) {
 		adminRoutes.PUT("/:id", controllers.UpdateAdmin)
 	}
 
-	ticketRoutes := r.Group("/tickets")
-	{
-		ticketRoutes.GET("/", controllers.GetAllTickets)
-		ticketRoutes.POST("/", controllers.CreateTicket)
-		ticketRoutes.GET("/:id", controllers.GetTicket)
-		ticketRoutes.PUT("/:id", controllers.UpdateTicket)
-		ticketRoutes.DELETE("/:id", controllers.DeleteTicket)
-		ticketRoutes.GET("/active", controllers.ActiveTicket)
-		ticketRoutes.GET("/progress", controllers.ProgressTicket)
-	}
+	// ticketRoutes := r.Group("/tickets")
+	// {
+	// 	ticketRoutes.GET("/", controllers.GetAllTickets)
+	// 	ticketRoutes.POST("/", controllers.CreateTicket)
+	// 	ticketRoutes.GET("/:id", controllers.GetTicket)
+	// 	ticketRoutes.PUT("/:id", controllers.UpdateTicket)
+	// 	ticketRoutes.DELETE("/:id", controllers.DeleteTicket)
+	// 	ticketRoutes.GET("/active", controllers.ActiveTicket)
+	// 	ticketRoutes.GET("/progress", controllers.ProgressTicket)
+	// }
 
-	userRoutes := r.Group("/users")
-	{
-		userRoutes.GET("/", controllers.GetAllUsers)
-		userRoutes.POST("/", controllers.CreateUser)
-		userRoutes.GET("/:id", controllers.GetUser)
-		userRoutes.PUT("/:id", controllers.UpdateUser)
-	}
+	// userRoutes := r.Group("/users")
+	// {
+	// 	userRoutes.GET("/", controllers.GetAllUsers)
+	// 	userRoutes.POST("/", controllers.CreateUser)
+	// 	userRoutes.GET("/:id", controllers.GetUser)
+	// 	userRoutes.PUT("/:id", controllers.UpdateUser)
+	// }
 
-	queueRoutes := r.Group("/queue")
-	{
-		queueRoutes.GET("/", controllers.GetAllQueue)
-		queueRoutes.POST("/:type", controllers.AddQueue)
-		queueRoutes.GET("/:type", controllers.GetQueue)
-	}
+	// queueRoutes := r.Group("/queue")
+	// {
+	// 	queueRoutes.GET("/", controllers.GetAllQueue)
+	// 	queueRoutes.POST("/:type", controllers.AddQueue)
+	// 	queueRoutes.GET("/:type", controllers.GetQueue)
+	// }
 
 	registerRoutes := r.Group("/register")
 	{
 		registerRoutes.POST("/doctor", controllers.RegisterDoctor)
 		registerRoutes.POST("/admin", controllers.RegisterAdmin)
+		registerRoutes.POST("/login", controllers.Login)
 	}
 }

@@ -7,7 +7,5 @@ type Admin struct {
 	LastName   string `json:"last_name"`
 	FirstName  string `json:"first_name"`
 	MiddleName string `json:"middle_name"`
+	Role       string `json:"role"`
 }
-
-
-

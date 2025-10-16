@@ -9,6 +9,7 @@ type Doctor struct {
 	MiddleName     string `json:"middle_name"`
 	Specialization string `json:"specialization"`
 	Office         string `json:"office"`
+	Role           string `json:"role"`
 
 	Queue []Queue `json:"queue" gorm:"foreignKey:DoctorID"`
 }
