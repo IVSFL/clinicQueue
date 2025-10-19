@@ -4,12 +4,17 @@ import DivForm from "./DivForm";
 import SuccessButton from "./UI/SuccessButton";
 import FormSelect from "./UI/FormSelect";
 import FormTextarea from "./UI/FormTextaera";
+import ModalWindow from "./UI/ModalWindow/ModalWindow"
+import DoctorAccount from "./DoctorAccount"
 import axios from "axios";
 
 const Account = () => {
-  let ticketPatient="";
+  //
+  // РЕГИСТРАТОР
+  const [ticket, setTicket] = useState('')
   const [specialization, setSpecialization] = useState([]);
   const [selectedSpecialization, setSelectedSpecialization] = useState("");
+  const [modal, setModal] = useState(false);
 
   const [credentials, setCredentials] = useState({
     lastName: "",
@@ -19,7 +24,7 @@ const Account = () => {
     phoneNumber: "",
     passportNumber: "",
     policyOMS: "",
-    context: "",
+    content: "",
   });
 
   async function fetchSpecialization() {
@@ -54,22 +59,41 @@ const Account = () => {
         phone_number: credentials.phoneNumber,
         passport_number: credentials.passportNumber,
         policy_oms: credentials.policyOMS,
-        context: credentials.context,
+        content: credentials.content,
       });
       const resTicket = await axios.post("http://localhost:8000/tickets", {
         patient_id: res.data.id,
         specialization: selectedSpecialization,
       })
-      console.log(res.data);
-      ticketPatient = resTicket.data.ticket_number
+      //console.log(res.data);
+      console.log(resTicket.data)
+      setTicket(resTicket.data.ticket_number)
+      setModal(true)
+      setCredentials({
+      lastName: "",
+      firstName: "",
+      middleName: "",
+      birthDate: "",
+      phoneNumber: "",
+      passportNumber: "",
+      policyOMS: "",
+      content: "",
+    });
+    setSelectedSpecialization("");
     } catch (err) {
       alert("ERR");
       console.error("ERROR! ", err);
     }
   };
 
+  // ДОКТОР
+  
+
   return (
     <div style={{ padding: "2rem" }}>
+      {/* <ModalWindow visible={modal} setVisible={setModal}>
+        <h1>Талон номер: {ticket}</h1>
+      </ModalWindow>
       <ReceptionAccount>
         <div className="mb-4 d-flex justify-content-end">
           <SuccessButton>Найти пациента</SuccessButton>
@@ -170,8 +194,8 @@ const Account = () => {
             <div>
               <FormTextarea
               label="Жалобы"
-              name="context"
-              value={credentials.context}
+              name="content"
+              value={credentials.content}
               placeholder="Введите жалобы"
               onChange={handleChange}
               />
@@ -182,7 +206,9 @@ const Account = () => {
             <SuccessButton>Выдать талон</SuccessButton>
           </div>
         </form>
-      </ReceptionAccount>
+      </ReceptionAccount> */}
+
+      <DoctorAccount></DoctorAccount>
     </div>
   );
 };

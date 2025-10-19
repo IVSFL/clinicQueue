@@ -50,8 +50,8 @@ func RegisterRoutes(r *gin.Engine) {
 
 	queueRoutes := r.Group("/queue")
 	{
-		//queueRoutes.GET("/", controllers.GetAllQueue)
-		//queueRoutes.POST("/:type", controllers.AddQueue)
+		queueRoutes.POST("/:id/call-next", controllers.CallNext)
+		queueRoutes.POST("/:id/call/:patient_id", controllers.CallList)
 		queueRoutes.GET("/:id", controllers.GetDoctorQueue)
 	}
 

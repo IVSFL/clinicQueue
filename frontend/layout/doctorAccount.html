@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет врача</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f0f8f0; /* светло-зеленый фон */
+    }
+    .btn-green {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
+    .btn-green:hover {
+      background-color: #218838;
+    }
+    .patient-card {
+      background-color: #e6f4ea;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .next-patient-card {
+      background-color: #d4edda;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container py-4">
+  <div class="row">
+    <!-- Левая часть: данные пациента -->
+    <div class="col-lg-8 mb-4">
+      <div class="patient-card">
+        <h3>Пациент: Иванов Иван Иванович</h3>
+        <p><strong>Дата рождения:</strong> 01.01.1980</p>
+        <p><strong>Телефон:</strong> +7(999)999-99-99</p>
+        <p><strong>Жалобы:</strong> Головная боль, слабость</p>
+
+        <!-- Кнопки завершить/отложить -->
+        <div class="d-flex justify-content-end mt-4">
+          <button class="btn btn-green me-2">Завершить</button>
+          <button class="btn btn-outline-success">Отложить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Правая часть: следующий пациент и список -->
+    <div class="col-lg-4">
+      <!-- Кнопка следующий -->
+      <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-green w-100">Следующий</button>
+      </div>
+
+      <!-- Список следующих пациентов -->
+      <div>
+        <div class="next-patient-card d-flex justify-content-between align-items-center">
+          <span>Петров Петр Петрович</span>
+          <button class="btn btn-sm btn-green">Вызвать</button>
+        </div>
+        <div class="next-patient-card d-flex justify-content-between align-items-center">
+          <span>Сидорова Мария Ивановна</span>
+          <button class="btn btn-sm btn-green">Вызвать</button>
+        </div>
+        <div class="next-patient-card d-flex justify-content-between align-items-center">
+          <span>Кузнецов Алексей Сергеевич</span>
+          <button class="btn btn-sm btn-green">Вызвать</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

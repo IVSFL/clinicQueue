@@ -100,6 +100,7 @@ func RegisterDoctor(c *gin.Context) {
 			MiddleName:       input.MiddleName,
 			SpecializationID: input.SpecializationID,
 			Office:           input.Office,
+			Role:             "doctor",
 		}
 		if err := tx.Create(&doctor).Error; err != nil {
 			return err
@@ -158,6 +159,7 @@ func RegisterAdmin(c *gin.Context) {
 			LastName:   input.LastName,
 			FirstName:  input.FirstName,
 			MiddleName: input.MiddleName,
+			Role:       "admin",
 		}
 		if err := tx.Create(&admin).Error; err != nil {
 			return err

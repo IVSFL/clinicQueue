@@ -10,6 +10,7 @@ type Ticket struct {
 	Specialization   *Specialization `json:"specialization" gorm:"foreignKey:SpecializationID"`
 	TicketNumber     string          `json:"ticket_number"`
 	Status           string          `json:"status"`
+	CalledAt         time.Time       `json:"called_at"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 }
