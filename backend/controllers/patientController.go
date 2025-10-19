@@ -3,6 +3,7 @@ package controllers
 import (
 	"clinicQueue/config"
 	"clinicQueue/models"
+	"log"
 	"net/http"
 	"time"
 
@@ -14,7 +15,7 @@ type PatientInput struct {
 	FirstName      string `json:"first_name" binding:"required"`
 	MiddleName     string `json:"middle_name" binding:"required"`
 	BirthDate      string `json:"birth_date" binding:"required"`
-	Phone          string `json:"phone_number" binding:"required,min=11,max=11"`
+	PhoneNumber    string `json:"phone_number" binding:"required,min=11,max=11"`
 	PassportNumber string `json:"passport_number" binding:"required,min=11,max=11"`
 	PolicyOMS      string `json:"policy_oms" binding:"required,min=16,max=16"`
 	Content        string `json:"content"`
@@ -53,17 +54,17 @@ func CreatePatient(c *gin.Context) {
 
 	var existingPatient models.Patient
 
-	if err := config.DB.Where("phone_number = ?", input.Phone).First(&existingPatient).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер телефона уже тспользуется"})
+	if err := config.DB.Where("phone_number = ?", input.PhoneNumber).First(&existingPatient).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер телефона уже используется"})
 		return
 	}
 
-	if err := config.DB.Where("passport_number = ?", input.PassportNumber).First(&existingPatient).Error; err != nil {
+	if err := config.DB.Where("passport_number = ?", input.PassportNumber).First(&existingPatient).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер паспорта уже используется"})
 		return
 	}
 
-	if err := config.DB.Where("policy_oms = ?", input.PolicyOMS).First(&existingPatient).Error; err != nil {
+	if err := config.DB.Where("policy_oms = ?", input.PolicyOMS).First(&existingPatient).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер полиса уже используется"})
 		return
 	}
@@ -73,7 +74,7 @@ func CreatePatient(c *gin.Context) {
 		FirstName:      input.FirstName,
 		MiddleName:     input.MiddleName,
 		BirthDate:      input.BirthDate,
-		Phone:          input.Phone,
+		Phone:          input.PhoneNumber,
 		PassportNumber: input.PassportNumber,
 		PolicyOMS:      input.PolicyOMS,
 		Content:        input.Content,
@@ -81,8 +82,9 @@ func CreatePatient(c *gin.Context) {
 		UpdatedAt:      time.Now(),
 	}
 
-	if err := config.DB.Create(patient).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"erroro": "Не удалось создать пациента"})
+	if err := config.DB.Create(&patient).Error; err != nil {
+		log.Println("Ошибка при создании", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать пациента"})
 		return
 	}
 

@@ -15,13 +15,13 @@ import (
 )
 
 type RegisterDoctorInput struct {
-	Email          string `json:"email" binding:"required,email"`
-	Password       string `json:"password" binding:"required,min=6"`
-	LastName       string `json:"last_name" binding:"required"`
-	FirstName      string `json:"first_name" binding:"required"`
-	MiddleName     string `json:"middle_name" binding:"required"`
-	Specialization string `json:"specialization" binding:"required"`
-	Office         string `json:"office" binding:"required"`
+	Email            string `json:"email" binding:"required,email"`
+	Password         string `json:"password" binding:"required,min=6"`
+	LastName         string `json:"last_name" binding:"required"`
+	FirstName        string `json:"first_name" binding:"required"`
+	MiddleName       string `json:"middle_name" binding:"required"`
+	SpecializationID uint   `json:"specialization_id" binding:"required"`
+	Office           string `json:"office" binding:"required"`
 }
 
 type RegisterAdminInput struct {
@@ -94,12 +94,12 @@ func RegisterDoctor(c *gin.Context) {
 		}
 
 		doctor := models.Doctor{
-			UserID:         user.ID,
-			LastName:       input.LastName,
-			FirstName:      input.FirstName,
-			MiddleName:     input.MiddleName,
-			Specialization: input.Specialization,
-			Office:         input.Office,
+			UserID:           user.ID,
+			LastName:         input.LastName,
+			FirstName:        input.FirstName,
+			MiddleName:       input.MiddleName,
+			SpecializationID: input.SpecializationID,
+			Office:           input.Office,
 		}
 		if err := tx.Create(&doctor).Error; err != nil {
 			return err
