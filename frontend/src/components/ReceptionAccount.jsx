@@ -6,7 +6,7 @@ const ReceptionAccount = ({ children }) => {
       <div className="card shadow border-0">
         <div
           className="card-header text-white text-center"
-          style={{ background: "#198754" }}
+          style={{ background: "#3aa8a8" }}
         >
           <h4>Данные пациента</h4>
         </div>

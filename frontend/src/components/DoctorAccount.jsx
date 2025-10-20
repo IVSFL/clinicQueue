@@ -12,6 +12,7 @@ const DoctorAccountStyle = () => {
   async function fetchQueue() {
     try {
       const res = await axios.get(`http://localhost:8000/queue/${doctorId}`);
+      console.log(res.data);
       setQueue(res.data);
     } catch (err) {
       console.error(err);

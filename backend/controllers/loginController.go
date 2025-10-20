@@ -214,6 +214,7 @@ func Login(c *gin.Context) {
 			"role":  "doctor",
 			"user": gin.H{
 				"id":             user.ID,
+				"role_id":        user.Doctor.ID,
 				"email":          user.Email,
 				"first_name":     user.Doctor.FirstName,
 				"last_name":      user.Doctor.LastName,
@@ -228,6 +229,7 @@ func Login(c *gin.Context) {
 			"role":  "admin",
 			"user": gin.H{
 				"id":          user.ID,
+				"role_id":     user.Admin.ID,
 				"email":       user.Email,
 				"first_name":  user.Admin.FirstName,
 				"last_name":   user.Admin.LastName,

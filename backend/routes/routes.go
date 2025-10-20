@@ -7,6 +7,7 @@ import (
 )
 
 func RegisterRoutes(r *gin.Engine) {
+	r.GET("/ws", controllers.WSHandler)
 	patientRoutes := r.Group("/patients")
 	{
 		patientRoutes.GET("", controllers.GetAllPatients)

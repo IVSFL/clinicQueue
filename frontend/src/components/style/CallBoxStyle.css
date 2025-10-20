@@ -1,0 +1,206 @@
+:root {
+  --bg: #3aa8a8; /* основной фон (можно подправить) */
+  --accent: #ffd24a; /* жёлтый для талонов */
+  --white: #ffffff;
+  --muted-white: rgba(255, 255, 255, 0.88);
+  --glass: rgba(255, 255, 255, 0.06);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: "Montserrat", "Roboto", sans-serif;
+  background: var(--bg);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Полноэкранный контейнер */
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 40px;
+  box-sizing: border-box;
+}
+
+/* Хедер: логотип слева, время справа */
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--white);
+  font-size: 18px;
+}
+.brand .title {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+.brand .subtitle {
+  font-weight: 300;
+  font-size: 12px;
+  opacity: 0.9;
+  color: var(--muted-white);
+}
+
+.clock {
+  font-weight: 700;
+  font-size: 28px;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--white);
+}
+
+/* Заголовки колонок */
+.columns-head {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  font-weight: 700;
+  font-size: 18px;
+  background: var(--glass);
+  border-radius: 8px;
+  color: var(--muted-white);
+}
+
+/* Контейнер строк */
+.rows {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr;
+  gap: 12px;
+  align-items: center;
+  padding: 22px 28px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Левая колонка: талон */
+.ticket {
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 48px;
+  line-height: 1;
+  text-align: left;
+}
+
+/* Средняя колонка: стрелка + кабинет */
+.middle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  font-weight: 800;
+  font-size: 40px;
+  color: var(--white);
+}
+.arrow {
+  font-size: 42px;
+  opacity: 0.95;
+}
+.room {
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* Правая колонка: доктор */
+.doctor {
+  text-align: left;
+  font-weight: 600;
+  font-size: 24px;
+  white-space: pre-line; /* чтобы можно было переносить в имени */
+  line-height: 1.25;
+  color: var(--white);
+}
+
+/* Разделители между строками */
+.rows > .row + .row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 20px;
+}
+
+/* Большие экраны: увеличить шрифты */
+@media (min-width: 1400px) {
+  .ticket {
+    font-size: 68px;
+  }
+  .room {
+    font-size: 84px;
+  }
+  .middle {
+    font-size: 54px;
+  }
+  .doctor {
+    font-size: 30px;
+  }
+}
+
+/* Мобильные (уменьшить) */
+@media (max-width: 900px) {
+  .columns-head {
+    font-size: 14px;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 8px;
+  }
+  .row {
+    padding: 14px;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .ticket {
+    font-size: 34px;
+  }
+  .room {
+    font-size: 36px;
+  }
+  .doctor {
+    font-size: 16px;
+  }
+  .clock {
+    font-size: 20px;
+  }
+}

@@ -35,7 +35,8 @@ const LoginForm = () => {
         localStorage.setItem("user", JSON.stringify(res.data.user));
         //console.log(res.data.token);
         //console.log(res.data.user)
-        localStorage.setItem("id", res.data.user.id)
+        console.log(res.data)
+        localStorage.setItem("id", res.data.user.role_id)
         localStorage.setItem("role", res.data.role)
 
         navigate("/account")
