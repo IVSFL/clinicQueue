@@ -8,6 +8,7 @@ import (
 
 func RegisterRoutes(r *gin.Engine) {
 	r.GET("/ws", controllers.WSHandler)
+
 	patientRoutes := r.Group("/patients")
 	{
 		patientRoutes.GET("", controllers.GetAllPatients)
@@ -21,6 +22,8 @@ func RegisterRoutes(r *gin.Engine) {
 		doctorRoutes.POST("/", controllers.CreateDoctor)
 		doctorRoutes.GET("/:id", controllers.GetDoctor)
 		doctorRoutes.PUT("/:id", controllers.UpdateDoctor)
+		doctorRoutes.PUT("/:id/office", controllers.UpdateDoctorOffice)
+		doctorRoutes.GET("/specialization/:specialization_id", controllers.GetDoctorsBySpecialization)
 	}
 
 	adminRoutes := r.Group("/admins")
@@ -53,7 +56,12 @@ func RegisterRoutes(r *gin.Engine) {
 	{
 		queueRoutes.POST("/:id/call-next", controllers.CallNext)
 		queueRoutes.POST("/:id/call/:patient_id", controllers.CallList)
+		queueRoutes.POST("/:id/call-deferred/:patient_id", controllers.CallDeferredPatient)
+		queueRoutes.POST("/defer/:ticket_number", controllers.DeferPatientForTicket)
+		queueRoutes.GET("/:id/deferred", controllers.GetDoctorDeferredQueue)
 		queueRoutes.GET("/:id", controllers.GetDoctorQueue)
+		queueRoutes.POST("/complete/:ticket_number", controllers.CompletePatient)
+		queueRoutes.POST("/transfer/:ticket_number", controllers.TransferPatient)
 	}
 
 	registerRoutes := r.Group("/register")

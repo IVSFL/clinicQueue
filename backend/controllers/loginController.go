@@ -21,7 +21,7 @@ type RegisterDoctorInput struct {
 	FirstName        string `json:"first_name" binding:"required"`
 	MiddleName       string `json:"middle_name" binding:"required"`
 	SpecializationID uint   `json:"specialization_id" binding:"required"`
-	Office           string `json:"office" binding:"required"`
+	Office           string `json:"office"`
 }
 
 type RegisterAdminInput struct {
@@ -99,7 +99,6 @@ func RegisterDoctor(c *gin.Context) {
 			FirstName:        input.FirstName,
 			MiddleName:       input.MiddleName,
 			SpecializationID: input.SpecializationID,
-			Office:           input.Office,
 			Role:             "doctor",
 		}
 		if err := tx.Create(&doctor).Error; err != nil {
@@ -136,6 +135,7 @@ func RegisterAdmin(c *gin.Context) {
 	var existingUser models.User
 	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email уже используется"})
+		return
 	}
 
 	err := config.DB.Transaction(func(tx *gorm.DB) error {

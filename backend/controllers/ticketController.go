@@ -32,7 +32,7 @@ func GenerateTicketNumber(specializationID uint) (string, error) {
 func CreateTicket(c *gin.Context) {
 	var req struct {
 		PatientID      uint   `json:"patient_id"`
-		Specialization string `json:"specialization"` // теперь приходит слово, например "Терапевт"
+		Specialization string `json:"specialization"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -40,14 +40,14 @@ func CreateTicket(c *gin.Context) {
 		return
 	}
 
-	// 🔹 Находим специализацию по названию
+	// Специализация по названию
 	var spec models.Specialization
 	if err := config.DB.Where("name = ?", req.Specialization).First(&spec).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Специализация не найдена"})
 		return
 	}
 
-	// 🔹 Генерируем номер талона
+	//Генерируем номер талона
 	ticketNumber, err := GenerateTicketNumber(spec.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации талона"})

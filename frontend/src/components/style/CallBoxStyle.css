@@ -1,23 +1,10 @@
-:root {
-  --bg: #3aa8a8; /* основной фон (можно подправить) */
-  --accent: #ffd24a; /* жёлтый для талонов */
-  --white: #ffffff;
-  --muted-white: rgba(255, 255, 255, 0.88);
-  --glass: rgba(255, 255, 255, 0.06);
+/* Локальные переменные */
+:local {
+  --cb-bg: #3aa8a8;
+  --cb-white: #fff;
+  --cb-yellow: #ffd24a;
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-  font-family: "Montserrat", "Roboto", sans-serif;
-  background: var(--bg);
-  color: var(--white);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Полноэкранный контейнер */
 .wrap {
   min-height: 100vh;
   display: flex;
@@ -27,56 +14,12 @@ body {
   gap: 24px;
   padding: 28px 40px;
   box-sizing: border-box;
+  background: var(--cb-bg);
+  color: var(--cb-white);
+  font-family: "Montserrat", "Roboto", sans-serif;
 }
 
-/* Хедер: логотип слева, время справа */
-.header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: var(--white);
-  font-size: 18px;
-}
-.brand .title {
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 0.2px;
-}
-.brand .subtitle {
-  font-weight: 300;
-  font-size: 12px;
-  opacity: 0.9;
-  color: var(--muted-white);
-}
-
-.clock {
-  font-weight: 700;
-  font-size: 28px;
-  background: transparent;
-  padding: 6px 10px;
-  border-radius: 6px;
-  color: var(--white);
-}
-
-/* Заголовки колонок */
-.columns-head {
+.columnsHead {
   width: 100%;
   max-width: 1200px;
   display: grid;
@@ -88,12 +31,9 @@ body {
   box-sizing: border-box;
   font-weight: 700;
   font-size: 18px;
-  background: var(--glass);
   border-radius: 8px;
-  color: var(--muted-white);
 }
 
-/* Контейнер строк */
 .rows {
   width: 100%;
   max-width: 1200px;
@@ -119,16 +59,14 @@ body {
   background: rgba(255, 255, 255, 0.03);
 }
 
-/* Левая колонка: талон */
 .ticket {
   font-weight: 800;
-  color: var(--accent);
+  color: var(--cb-yellow);
   font-size: 48px;
   line-height: 1;
   text-align: left;
 }
 
-/* Средняя колонка: стрелка + кабинет */
 .middle {
   display: flex;
   align-items: center;
@@ -136,36 +74,151 @@ body {
   gap: 18px;
   font-weight: 800;
   font-size: 40px;
-  color: var(--white);
+  color: var(--cb-white);
 }
+
 .arrow {
   font-size: 42px;
   opacity: 0.95;
 }
+
 .room {
   font-size: 46px;
   font-weight: 900;
   letter-spacing: 1px;
 }
 
-/* Правая колонка: доктор */
 .doctor {
   text-align: left;
   font-weight: 600;
   font-size: 24px;
-  white-space: pre-line; /* чтобы можно было переносить в имени */
+  white-space: pre-line;
   line-height: 1.25;
-  color: var(--white);
+  color: var(--cb-white);
 }
 
-/* Разделители между строками */
 .rows > .row + .row {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 20px;
 }
 
-/* Большие экраны: увеличить шрифты */
-@media (min-width: 1400px) {
+/* Стили для модального окна */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  background: #007bff;
+  color: white;
+  padding: 20px;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  justify-content: between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  flex-grow: 1;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  padding: 30px;
+}
+
+.call-info {
+  text-align: center;
+}
+
+.patient-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.ticket-number {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.office {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.doctor {
+  font-size: 16px;
+  color: #888;
+}
+
+.modal-footer {
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
+
+.btn-ok {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.btn-ok:hover {
+  background: #0056b3;
+}
+
+/* @media (min-width: 1400px) {
   .ticket {
     font-size: 68px;
   }
@@ -178,29 +231,4 @@ body {
   .doctor {
     font-size: 30px;
   }
-}
-
-/* Мобильные (уменьшить) */
-@media (max-width: 900px) {
-  .columns-head {
-    font-size: 14px;
-    grid-template-columns: 1fr 1fr 1fr;
-    padding: 8px;
-  }
-  .row {
-    padding: 14px;
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  .ticket {
-    font-size: 34px;
-  }
-  .room {
-    font-size: 36px;
-  }
-  .doctor {
-    font-size: 16px;
-  }
-  .clock {
-    font-size: 20px;
-  }
-}
+} */

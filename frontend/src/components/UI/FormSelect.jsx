@@ -5,7 +5,6 @@ const FormSelect = ({ label, specialization, selected, onChange }) => {
     <div className="mb-3">
       {label && <label className="form-label">{label}</label>}
       <select
-        className="form-select"
         value={selected}
         onChange={(e) => onChange(e.target.value)}
       >

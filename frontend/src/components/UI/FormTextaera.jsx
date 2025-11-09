@@ -5,7 +5,6 @@ const FormTextarea = ({ label, value, placeholder, onChange, name }) => {
     <div className="mb-3">
       <label className="form-label">{label}</label>
       <textarea
-        className="form-control"
         rows="4"
         value={value}
         placeholder={placeholder}

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"gorm.io/driver/mysql"
+	"github.com/glebarez/sqlite" // pure-Go SQLite
 	"gorm.io/gorm"
 
 	"clinicQueue/models"
@@ -14,16 +14,24 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
+	// Для SQLite используем путь к файлу базы данных
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		// Значение по умолчанию
+		dbPath = "clinic_queue.db"
+	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	// Создаем директорию если нужно
+	err := os.MkdirAll("./data", 0755)
+	if err != nil {
+		log.Fatal("Failed to create data directory:", err)
+	}
 
-	database, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	// Формируем полный путь
+	fullPath := "./data/" + dbPath
+
+	dsn := fullPath
+	database, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		log.Fatal("Failed connect to database!", err)
@@ -31,7 +39,10 @@ func ConnectDatabase() {
 
 	DB = database
 
-	fmt.Printf("Connect sucsses")
+	fmt.Println("Connect success to SQLite database")
+
+	// Настраиваем внешние ключи для SQLite
+	DB.Exec("PRAGMA foreign_keys = ON")
 
 	err = DB.AutoMigrate(
 		&models.User{},
@@ -46,9 +57,13 @@ func ConnectDatabase() {
 		log.Fatal("Failed to migration", err)
 	}
 
-	fmt.Printf("Database migrated success")
+	fmt.Println("Database migrated successfully")
+
+	// Заполняем начальные данные
+	SeedSpecialization()
 }
 
+// SeedSpecialization функция остается без изменений
 func SeedSpecialization() {
 	specializations := map[string]string{
 		"Терапевт":      "А",
@@ -88,7 +103,7 @@ func SeedSpecialization() {
 			Prefix: prefix,
 		}
 
-		if err := DB.Debug().Select("Name", "Prefix").Create(&spec).Error; err != nil {
+		if err := DB.Select("Name", "Prefix").Create(&spec).Error; err != nil {
 			log.Println("Ошибка вставки:", err)
 		} else {
 			log.Println("Специализация добавлена:", name, "=>", prefix)

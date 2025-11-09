@@ -1,0 +1,40 @@
+/* Стили для модального окна кабинета */
+.office-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.office-modal-content {
+  background: white;
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+}
+
+.office-modal-content .modal-header {
+  background: #007bff;
+  color: white;
+  padding: 20px;
+  border-radius: 10px 10px 0 0;
+  text-align: center;
+}
+
+.office-modal-content .modal-body {
+  padding: 30px;
+}
+
+.office-modal-content .modal-footer {
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
