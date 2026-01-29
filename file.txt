@@ -1,0 +1,1436 @@
+package config
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
+	"clinicQueue/models"
+)
+
+var DB *gorm.DB
+
+func ConnectDatabase() {
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	database, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	if err != nil {
+		log.Fatal("Failed connect to database!", err)
+	}
+
+	DB = database
+
+	fmt.Printf("Connect sucsses")
+
+	err = DB.AutoMigrate(
+		&models.User{},
+		&models.Doctor{},
+		&models.Admin{},
+		&models.Patient{},
+		&models.Queue{},
+		&models.Ticket{},
+		&models.Specialization{},
+	)
+	if err != nil {
+		log.Fatal("Failed to migration", err)
+	}
+
+	fmt.Printf("Database migrated success")
+}
+
+func SeedSpecialization() {
+	specializations := map[string]string{
+		"Терапевт":      "А",
+		"Хирург":        "Б",
+		"Отоларинголог": "В",
+		"Невролог":      "Г",
+	}
+
+	for name, prefix := range specializations {
+		var existing models.Specialization
+
+		// Ищем существующую запись
+		result := DB.Where("name = ?", name).First(&existing)
+
+		// Если есть ошибка, не связанная с отсутствием записи
+		if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+			log.Println("Ошибка при проверке специализации:", result.Error)
+			continue
+		}
+
+		// Если запись уже существует — обновляем префикс, если он NULL
+		if result.Error == nil {
+			if existing.Prefix == "" || existing.Prefix == "NULL" {
+				existing.Prefix = prefix
+				if err := DB.Model(&existing).Update("Prefix", prefix).Error; err != nil {
+					log.Println("Ошибка обновления Prefix:", err)
+				} else {
+					log.Println("Обновлён Prefix для:", name)
+				}
+			}
+			continue
+		}
+
+		// Создаём новую запись, явно указываем поля
+		spec := models.Specialization{
+			Name:   name,
+			Prefix: prefix,
+		}
+
+		if err := DB.Debug().Select("Name", "Prefix").Create(&spec).Error; err != nil {
+			log.Println("Ошибка вставки:", err)
+		} else {
+			log.Println("Специализация добавлена:", name, "=>", prefix)
+		}
+	}
+}
+
+package controllers
+
+import(
+	"net/http"
+	"clinicQueue/models"
+	"clinicQueue/config"
+
+	"github.com/gin-gonic/gin"
+)
+
+func CreateAdmin(c *gin.Context) {
+	var admin models.Admin
+
+	if err := c.ShouldBindJSON(&admin); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := config.DB.Create(&admin).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать администратора"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, admin)
+}
+
+func GetAdmin(c *gin.Context){
+	id := c.Param("id")
+	var admin models.Admin
+
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Админ не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, admin)
+}
+
+func UpdateAdmin(c *gin.Context) {
+	id := c.Param("id")
+	var admin models.Admin
+
+	if err := config.DB.First(&admin, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Админ не найден"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&admin); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	config.DB.Save(&admin)
+	c.JSON(http.StatusOK, admin)
+}
+
+package controllers
+
+import(
+	"net/http"
+	"clinicQueue/models"
+	"clinicQueue/config"
+
+	"github.com/gin-gonic/gin"
+)
+
+func GetAllDoctors(c *gin.Context) {
+	var doctors []models.Doctor
+
+	if err := config.DB.Find(&doctors).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения данных"})
+		return
+	}
+
+	c.JSON(http.StatusOK, doctors)
+}
+
+func GetDoctor(c *gin.Context) {
+	id := c.Param("id")
+	var doctor models.Doctor
+
+	if err := config.DB.First(&doctor, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Врач не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, doctor)
+}
+
+func CreateDoctor(c *gin.Context){
+	var doctor models.Doctor
+
+	if err := c.ShouldBindJSON(&doctor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := config.DB.Create(&doctor).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать врача"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, doctor)
+}
+
+func UpdateDoctor(c *gin.Context){
+	id := c.Param("id")
+	var doctor models.Doctor
+
+	if err := config.DB.Find(&doctor, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Доктор не найден"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&doctor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	config.DB.Save(&doctor)
+	c.JSON(http.StatusOK, doctor)
+}
+
+package controllers
+
+import (
+	"clinicQueue/config"
+	"clinicQueue/models"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
+	"github.com/gin-gonic/gin"
+)
+
+type RegisterDoctorInput struct {
+	Email            string `json:"email" binding:"required,email"`
+	Password         string `json:"password" binding:"required,min=6"`
+	LastName         string `json:"last_name" binding:"required"`
+	FirstName        string `json:"first_name" binding:"required"`
+	MiddleName       string `json:"middle_name" binding:"required"`
+	SpecializationID uint   `json:"specialization_id" binding:"required"`
+	Office           string `json:"office" binding:"required"`
+}
+
+type RegisterAdminInput struct {
+	Email      string `json:"email" binding:"required,email"`
+	Password   string `json:"password" binding:"required,min=6"`
+	LastName   string `json:"last_name" binding:"required"`
+	FirstName  string `json:"first_name" binding:"required"`
+	MiddleName string `json:"middle_name" binding:"required"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+var secretKey = []byte(os.Getenv("JWT_SECRET"))
+
+func getToken(userID int) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(secretKey)
+}
+
+// func parseToken(tokenString string) (*jwt.Token, error) {
+// 	return jwt.Parse(tokenString, func(tokent *jwt.Token) (interface{}, error) {
+// 		return secretKey, nil
+// 	})
+// }
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+func RegisterDoctor(c *gin.Context) {
+	var input RegisterDoctorInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var existingUser models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email уже используется"})
+		return
+	}
+
+	err := config.DB.Transaction(func(tx *gorm.DB) error {
+		hashedPassword, err := hashPassword(input.Password)
+		if err != nil {
+			return err
+		}
+
+		user := models.User{
+			Email:     input.Email,
+			Password:  hashedPassword,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
+
+		doctor := models.Doctor{
+			UserID:           user.ID,
+			LastName:         input.LastName,
+			FirstName:        input.FirstName,
+			MiddleName:       input.MiddleName,
+			SpecializationID: input.SpecializationID,
+			Office:           input.Office,
+			Role:             "doctor",
+		}
+		if err := tx.Create(&doctor).Error; err != nil {
+			return err
+		}
+
+		user.Doctor = &doctor
+
+		token, err := getToken(int(user.ID))
+		if err != nil {
+			return err
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"user":  user,
+			"token": token,
+		})
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать врача"})
+	}
+
+}
+
+func RegisterAdmin(c *gin.Context) {
+	var input RegisterAdminInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	var existingUser models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email уже используется"})
+	}
+
+	err := config.DB.Transaction(func(tx *gorm.DB) error {
+		hashedPassword, err := hashPassword(input.Password)
+		if err != nil {
+			return err
+		}
+
+		user := models.User{
+			Email:     input.Email,
+			Password:  hashedPassword,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
+
+		admin := models.Admin{
+			UserID:     user.ID,
+			LastName:   input.LastName,
+			FirstName:  input.FirstName,
+			MiddleName: input.MiddleName,
+			Role:       "admin",
+		}
+		if err := tx.Create(&admin).Error; err != nil {
+			return err
+		}
+
+		user.Admin = &admin
+
+		token, err := getToken(int(user.ID))
+		if err != nil {
+			return err
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"user":  user,
+			"token": token,
+		})
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать администратора"})
+	}
+}
+
+func Login(c *gin.Context) {
+	var input LoginInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.Preload("Doctor").Preload("Admin").Where("email = ?", input.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Такого Email не существует"})
+		return
+	}
+
+	if !checkPasswordHash(input.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пароль введен не верно"})
+		return
+	}
+
+	token, err := getToken(int(user.ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка выдачи токена"})
+		return
+	}
+
+	if user.Doctor != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"token": token,
+			"role":  "doctor",
+			"user": gin.H{
+				"id":             user.ID,
+				"role_id":        user.Doctor.ID,
+				"email":          user.Email,
+				"first_name":     user.Doctor.FirstName,
+				"last_name":      user.Doctor.LastName,
+				"middle_name":    user.Doctor.MiddleName,
+				"specialization": user.Doctor.Specialization,
+				"office":         user.Doctor.Office,
+			},
+		})
+	} else if user.Admin != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"token": token,
+			"role":  "admin",
+			"user": gin.H{
+				"id":          user.ID,
+				"role_id":     user.Admin.ID,
+				"email":       user.Email,
+				"first_name":  user.Admin.FirstName,
+				"last_name":   user.Admin.LastName,
+				"middle_name": user.Admin.MiddleName,
+			},
+		})
+	}
+}
+package controllers
+
+import (
+	"clinicQueue/config"
+	"clinicQueue/models"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+type PatientInput struct {
+	LastName       string `json:"last_name" binding:"required"`
+	FirstName      string `json:"first_name" binding:"required"`
+	MiddleName     string `json:"middle_name" binding:"required"`
+	BirthDate      string `json:"birth_date" binding:"required"`
+	PhoneNumber    string `json:"phone_number" binding:"required,min=11,max=11"`
+	PassportNumber string `json:"passport_number" binding:"required,min=11,max=11"`
+	PolicyOMS      string `json:"policy_oms" binding:"required,min=16,max=16"`
+	Content        string `json:"content"`
+}
+
+func GetAllPatients(c *gin.Context) {
+	var patients []models.Patient
+
+	if err := config.DB.Find(&patients).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения данных"})
+		return
+	}
+
+	c.JSON(http.StatusOK, patients)
+}
+
+func GetPatient(c *gin.Context) {
+	id := c.Param("id")
+
+	var patient models.Patient
+	if err := config.DB.First(&patient, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пациент не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, patient)
+}
+
+func CreatePatient(c *gin.Context) {
+	var input PatientInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
+	var existingPatient models.Patient
+
+	if err := config.DB.Where("phone_number = ?", input.PhoneNumber).First(&existingPatient).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер телефона уже используется"})
+		return
+	}
+
+	if err := config.DB.Where("passport_number = ?", input.PassportNumber).First(&existingPatient).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер паспорта уже используется"})
+		return
+	}
+
+	if err := config.DB.Where("policy_oms = ?", input.PolicyOMS).First(&existingPatient).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Номер полиса уже используется"})
+		return
+	}
+
+	patient := models.Patient{
+		LastName:       input.LastName,
+		FirstName:      input.FirstName,
+		MiddleName:     input.MiddleName,
+		BirthDate:      input.BirthDate,
+		Phone:          input.PhoneNumber,
+		PassportNumber: input.PassportNumber,
+		PolicyOMS:      input.PolicyOMS,
+		Content:        input.Content,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	if err := config.DB.Create(&patient).Error; err != nil {
+		log.Println("Ошибка при создании", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать пациента"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, patient)
+}
+package controllers
+
+import (
+	"clinicQueue/config"
+	"clinicQueue/models"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
+
+	"github.com/gin-gonic/gin"
+)
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+var clients = make(map[*websocket.Conn]bool)
+var mu sync.Mutex
+
+func WSHandler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+
+	mu.Lock()
+	clients[conn] = true
+	mu.Unlock()
+
+	defer func() {
+		mu.Lock()
+		delete(clients, conn)
+		mu.Unlock()
+		conn.Close()
+	}()
+
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
+}
+
+func BroadcastCall(patient models.Patient, doctor models.Doctor, ticketNumber string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	message := map[string]interface{}{
+		"patient":      patient,
+		"doctor":       doctor,
+		"ticketNumber": ticketNumber,
+		"office":       doctor.Office,
+	}
+
+	for client := range clients {
+		err := client.WriteJSON(message)
+		if err != nil {
+			client.Close()
+			delete(clients, client)
+		}
+	}
+}
+
+func GetDoctorQueue(c *gin.Context) {
+	doctorID := c.Param("id")
+
+	var queue []models.Queue
+	if err := config.DB.Preload("Patient").Preload("Ticket").Where("doctor_id = ?", doctorID).Order("position ASC").Find(&queue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения очереди"})
+		return
+	}
+
+	c.JSON(http.StatusOK, queue)
+}
+
+func CallNext(c *gin.Context) {
+	doctorID := c.Param("id")
+
+	var next models.Queue
+
+	if err := config.DB.Preload("Patient").Preload("Ticket").Where("doctor_id = ?", doctorID).Order("position ASC").First(&next).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Очередь пуста"})
+		return
+	}
+
+	config.DB.Model(&models.Ticket{}).Where("id = ?", next.TicketID).Update("status", "processed")
+
+	now := time.Now()
+	config.DB.Model(&models.Ticket{}).Where("id = ?", next.ID).Update("called_at", &now)
+
+	var doctor models.Doctor
+	config.DB.First(&doctor, next.DoctorID)
+	BroadcastCall(*next.Patient, doctor, next.Ticket.TicketNumber)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Пациент вызван",
+		"ticket_number": next.Ticket.TicketNumber,
+		"patient":       next.Patient,
+	})
+}
+
+func CallList(c *gin.Context) {
+	doctorID := c.Param("id")
+	patientID := c.Param("patient_id")
+
+	var queueItem models.Queue
+	if err := config.DB.Preload("Patient").Preload("Ticket").Where("doctor_id = ? AND patient_id = ?", doctorID, patientID).First(&queueItem).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пациент не найден"})
+		return
+	}
+
+	config.DB.Model(&models.Ticket{}).Where("id = ?", queueItem.TicketID).Update("status", "processed")
+
+	now := time.Now()
+	config.DB.Model(&models.Ticket{}).Where("id = ?", queueItem.ID).Update("called_at", &now)
+
+	var doctor models.Doctor
+	config.DB.First(&doctor, queueItem.DoctorID)
+	BroadcastCall(*queueItem.Patient, doctor, queueItem.Ticket.TicketNumber)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Пациент вызван вручную",
+		"ticket_number": queueItem.Ticket.TicketNumber,
+		"patient":       queueItem.Patient,
+	})
+}
+
+package controllers
+
+import(
+	"net/http"
+	"clinicQueue/models"
+	"clinicQueue/config"
+
+	"github.com/gin-gonic/gin"
+)
+
+func GetAllSpecialization(c *gin.Context) {
+	var specialization []models.Specialization
+
+	if err := config.DB.Find(&specialization).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения данных"})
+		return
+	}
+
+	c.JSON(http.StatusOK, specialization)
+}
+package controllers
+
+import (
+	"clinicQueue/config"
+	"clinicQueue/models"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// Генерация номера талона по specializationID
+func GenerateTicketNumber(specializationID uint) (string, error) {
+	var spec models.Specialization
+	if err := config.DB.First(&spec, specializationID).Error; err != nil {
+		return "", err
+	}
+
+	today := time.Now().Format("2006-01-02")
+	var count int64
+	err := config.DB.Model(&models.Ticket{}).
+		Where("specialization_id = ? AND DATE(created_at) = ?", specializationID, today).
+		Count(&count).Error
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s%03d", spec.Prefix, count+1), nil
+}
+
+func CreateTicket(c *gin.Context) {
+	var req struct {
+		PatientID      uint   `json:"patient_id"`
+		Specialization string `json:"specialization"` // теперь приходит слово, например "Терапевт"
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат данных"})
+		return
+	}
+
+	// 🔹 Находим специализацию по названию
+	var spec models.Specialization
+	if err := config.DB.Where("name = ?", req.Specialization).First(&spec).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Специализация не найдена"})
+		return
+	}
+
+	// 🔹 Генерируем номер талона
+	ticketNumber, err := GenerateTicketNumber(spec.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации талона"})
+		return
+	}
+
+	// Создаём талон
+	ticket := models.Ticket{
+		PatientID:        req.PatientID,
+		SpecializationID: spec.ID,
+		TicketNumber:     ticketNumber,
+		Status:           "waiting",
+		CreatedAt:        time.Now(),
+	}
+
+	if err := config.DB.Create(&ticket).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения талона"})
+		return
+	}
+
+	// Находим врача по специализации
+	var doctor models.Doctor
+	if err := config.DB.Where("specialization_id = ?", spec.ID).First(&doctor).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Врач по этой специализации не найден"})
+		return
+	}
+
+	// Определяем позицию в очереди
+	var count int64
+	config.DB.Model(&models.Queue{}).Where("doctor_id = ?", doctor.ID).Count(&count)
+
+	queue := models.Queue{
+		DoctorID:  doctor.ID,
+		PatientID: req.PatientID,
+		TicketID:  ticket.ID,
+		Position:  int(count + 1),
+	}
+
+	if err := config.DB.Create(&queue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка добавления в очередь"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Талон успешно создан и добавлен в очередь",
+		"ticket_number":  ticket.TicketNumber,
+		"doctor_id":      doctor.ID,
+		"patient_id":     req.PatientID,
+		"queue_position": queue.Position,
+	})
+}
+package controllers
+
+import(
+	"net/http"
+	"clinicQueue/models"
+	"clinicQueue/config"
+
+	"github.com/gin-gonic/gin"
+)
+
+func GetAllUsers(c *gin.Context) {
+	var users []models.User
+
+	if err := config.DB.Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения данных"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func GetUser(c *gin.Context) {
+	id := c.Param("id")
+	var user models.User
+
+	if err := config.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func CreateUser(c *gin.Context){
+	var user models.Admin
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := config.DB.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать пользователя"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, user)
+}
+
+func UpdateUser(c *gin.Context){
+	id := c.Param("id")
+	var user models.User
+
+	if err := config.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	config.DB.Save(&user);
+	c.JSON(http.StatusOK, user);
+}
+package routes
+
+import (
+	"clinicQueue/controllers"
+
+	"github.com/gin-gonic/gin"
+)
+
+func RegisterRoutes(r *gin.Engine) {
+	r.GET("/ws", controllers.WSHandler)
+	patientRoutes := r.Group("/patients")
+	{
+		patientRoutes.GET("", controllers.GetAllPatients)
+		patientRoutes.POST("", controllers.CreatePatient)
+		patientRoutes.GET("/:id", controllers.GetPatient)
+	}
+
+	doctorRoutes := r.Group("/doctors")
+	{
+		doctorRoutes.GET("/", controllers.GetAllDoctors)
+		doctorRoutes.POST("/", controllers.CreateDoctor)
+		doctorRoutes.GET("/:id", controllers.GetDoctor)
+		doctorRoutes.PUT("/:id", controllers.UpdateDoctor)
+	}
+
+	adminRoutes := r.Group("/admins")
+	{
+		adminRoutes.POST("/", controllers.CreateAdmin)
+		adminRoutes.GET("/:id", controllers.GetAdmin)
+		adminRoutes.PUT("/:id", controllers.UpdateAdmin)
+	}
+
+	ticketRoutes := r.Group("/tickets")
+	{
+		//ticketRoutes.GET("/", controllers.GetAllTickets)
+		ticketRoutes.POST("", controllers.CreateTicket)
+		// ticketRoutes.GET("/:id", controllers.GetTicket)
+		// ticketRoutes.PUT("/:id", controllers.UpdateTicket)
+		// ticketRoutes.DELETE("/:id", controllers.DeleteTicket)
+		// ticketRoutes.GET("/active", controllers.ActiveTicket)
+		// ticketRoutes.GET("/progress", controllers.ProgressTicket)
+	}
+
+	// userRoutes := r.Group("/users")
+	// {
+	// 	userRoutes.GET("/", controllers.GetAllUsers)
+	// 	userRoutes.POST("/", controllers.CreateUser)
+	// 	userRoutes.GET("/:id", controllers.GetUser)
+	// 	userRoutes.PUT("/:id", controllers.UpdateUser)
+	// }
+
+	queueRoutes := r.Group("/queue")
+	{
+		queueRoutes.POST("/:id/call-next", controllers.CallNext)
+		queueRoutes.POST("/:id/call/:patient_id", controllers.CallList)
+		queueRoutes.GET("/:id", controllers.GetDoctorQueue)
+	}
+
+	registerRoutes := r.Group("/register")
+	{
+		registerRoutes.POST("/doctor", controllers.RegisterDoctor)
+		registerRoutes.POST("/admin", controllers.RegisterAdmin)
+		registerRoutes.POST("/login", controllers.Login)
+	}
+
+	specializationRoutes := r.Group("/specialization")
+	{
+		specializationRoutes.GET("", controllers.GetAllSpecialization)
+	}
+}
+package main
+
+import (
+	"clinicQueue/config"
+	"clinicQueue/routes"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"log"
+	"net/http"
+)
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env", err)
+	}
+
+	config.ConnectDatabase()
+	config.SeedSpecialization()
+
+	r := gin.Default()
+
+	r.Use(func(c *gin.Context) {
+    c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+    c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+    c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+
+    if c.Request.Method == "OPTIONS" {
+        c.AbortWithStatus(http.StatusNoContent)
+        return
+    }
+
+    c.Next()
+})
+
+	routes.RegisterRoutes(r)
+	r.Run(":8000")
+}
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <App></App>
+);
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginForm from "./components/LoginForm";
+import StyleDivForm from "./components/UI/StyleDivForm";
+import Account from "./components/Account";
+import CallBox from "./components/CallBox";
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route
+          path="/"
+          element={
+            <StyleDivForm>
+              <LoginForm />
+            </StyleDivForm>
+          }/>
+          <Route path="account" element={<Account />}/>
+          <Route path="/callBox" element={<CallBox />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+import React, { useState } from "react";
+import DivForm from "./DivForm";
+import SuccessButton from "./UI/SuccessButton";
+import axios from 'axios'
+import { useNavigate } from "react-router-dom";
+
+const LoginForm = () => {
+  const navigate = useNavigate();
+
+  // локальное состояние для email и password
+  const [credentials, setCredentials] = useState({
+    email: "",
+    password: "",
+  });
+
+  // обновление состояния при изменении поля
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // обработчик входа
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (credentials.email && credentials.password) {
+      try{
+        const res = await axios.post('http://localhost:8000/register/login',
+          {
+            email: credentials.email,
+            password: credentials.password,
+          }
+        )
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        //console.log(res.data.token);
+        //console.log(res.data.user)
+        console.log(res.data)
+        localStorage.setItem("id", res.data.user.role_id)
+        localStorage.setItem("role", res.data.role)
+
+        navigate("/account")
+      } catch(err) {
+        console.error('ERROR!', err);
+      }
+    } else {
+      alert("Введите логин и пароль");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <DivForm
+        labelFor="email"
+        labelText="Логин"
+        inputType="email"
+        id="email"
+        name="email"
+        placeholder="Введите логин"
+        value={credentials.email}
+        onChange={handleChange}
+      />
+
+      <DivForm
+        labelFor="password"
+        labelText="Пароль"
+        inputType="password"
+        id="password"
+        name="password"
+        placeholder="Введите пароль"
+        value={credentials.password}
+        onChange={handleChange}
+      />
+
+      <SuccessButton>Войти</SuccessButton>
+    </form>
+  );
+};
+
+export default LoginForm;
+import React, { useEffect, useState } from "react";
+import ReceptionAccount from "./ReceptionAccount";
+import DivForm from "./DivForm";
+import SuccessButton from "./UI/SuccessButton";
+import FormSelect from "./UI/FormSelect";
+import FormTextarea from "./UI/FormTextaera";
+import ModalWindow from "./UI/ModalWindow/ModalWindow"
+import DoctorAccount from "./DoctorAccount"
+import axios from "axios";
+
+const Account = () => {
+  //
+  // РЕГИСТРАТОР
+  const [ticket, setTicket] = useState('')
+  const [specialization, setSpecialization] = useState([]);
+  const [selectedSpecialization, setSelectedSpecialization] = useState("");
+  const [modal, setModal] = useState(false);
+
+  const [credentials, setCredentials] = useState({
+    lastName: "",
+    firstName: "",
+    middleName: "",
+    birthDate: "",
+    phoneNumber: "",
+    passportNumber: "",
+    policyOMS: "",
+    content: "",
+  });
+
+  async function fetchSpecialization() {
+    const res = await axios.get("http://localhost:8000/specialization");
+    setSpecialization(res.data);
+  }
+
+  async function fetchPatient() {
+    const res = await axios.get("http://localhost:8000/patients");
+    console.log(res.data)
+  }
+
+  useEffect(() => {
+    fetchSpecialization()
+    fetchPatient()
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await axios.post("http://localhost:8000/patients", {
+        last_name: credentials.lastName,
+        first_name: credentials.firstName,
+        middle_name: credentials.middleName,
+        birth_date: credentials.birthDate,
+        phone_number: credentials.phoneNumber,
+        passport_number: credentials.passportNumber,
+        policy_oms: credentials.policyOMS,
+        content: credentials.content,
+      });
+      const resTicket = await axios.post("http://localhost:8000/tickets", {
+        patient_id: res.data.id,
+        specialization: selectedSpecialization,
+      })
+      //console.log(res.data);
+      console.log(resTicket.data)
+      setTicket(resTicket.data.ticket_number)
+      setModal(true)
+      setCredentials({
+      lastName: "",
+      firstName: "",
+      middleName: "",
+      birthDate: "",
+      phoneNumber: "",
+      passportNumber: "",
+      policyOMS: "",
+      content: "",
+    });
+    setSelectedSpecialization("");
+    } catch (err) {
+      alert("ERR");
+      console.error("ERROR! ", err);
+    }
+  };
+
+  // ДОКТОР
+  
+
+  return (
+    <div style={{ padding: "2rem" }}>
+      {/* <ModalWindow visible={modal} setVisible={setModal}>
+        <h1>Талон номер: {ticket}</h1>
+      </ModalWindow>
+      <ReceptionAccount>
+        <div className="mb-4 d-flex justify-content-end">
+          <SuccessButton>Найти пациента</SuccessButton>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="row g-3">
+            <div className="col-md-4">
+              <DivForm
+                labelFor="lastName"
+                labelText="Фамилия"
+                inputType="text"
+                name="lastName"
+                placeholder="Введите фамилию"
+                value={credentials.lastName}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <DivForm
+                labelFor="firstName"
+                labelText="Имя"
+                inputType="text"
+                name="firstName"
+                placeholder="Введите имя"
+                value={credentials.firstName}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <DivForm
+                labelFor="middleName"
+                labelText="Отчество"
+                inputType="text"
+                name="middleName"
+                placeholder="Введите отчество"
+                value={credentials.middleName}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="row g-3 mt-2">
+            <div className="col-md-4">
+              <DivForm
+                labelFor="birthDate"
+                labelText="Дата рождения"
+                inputType="date"
+                name="birthDate"
+                value={credentials.birthDate}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <DivForm
+                labelFor="phoneNumber"
+                labelText="Номер телефона"
+                inputType="text"
+                name="phoneNumber"
+                placeholder="+7(999)999-99-99"
+                value={credentials.phoneNumber}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <DivForm
+                labelFor="passportNumber"
+                labelText="Паспортные данные"
+                inputType="text"
+                name="passportNumber"
+                placeholder="1111 111111"
+                value={credentials.passportNumber}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="row g-3 mt-2">
+            <div className="col-md-6">
+              <DivForm
+                labelFor="policyOMS"
+                labelText="Полис ОМС"
+                inputType="text"
+                name="policyOMS"
+                placeholder="Введите номер полиса"
+                value={credentials.policyOMS}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-md-6">
+              <FormSelect
+                label="Специалист"
+                specialization={specialization}
+                selected={selectedSpecialization}
+                onChange={setSelectedSpecialization}
+              />
+            </div>
+            <div>
+              <FormTextarea
+              label="Жалобы"
+              name="content"
+              value={credentials.content}
+              placeholder="Введите жалобы"
+              onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-end mt-4">
+            <SuccessButton>Выдать талон</SuccessButton>
+          </div>
+        </form>
+      </ReceptionAccount> */}
+
+      <DoctorAccount></DoctorAccount>
+    </div>
+  );
+};
+
+export default Account;
+import React, { useEffect, useState } from "react";
+import PatientInfo from "./PatientInfo";
+import PatientQueue from "./PatientQueue";
+import axios from "axios";
+
+const DoctorAccountStyle = () => {
+  const [currentPatient, setCurrentPatient] = useState(null);
+  const [queue, setQueue] = useState([]);
+
+  const doctorId = localStorage.getItem("id");
+
+  async function fetchQueue() {
+    try {
+      const res = await axios.get(`http://localhost:8000/queue/${doctorId}`);
+      console.log(res.data);
+      setQueue(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    fetchQueue();
+  }, []);
+
+  // const callPatient = (queueItem) => {
+  //   setCurrentPatient({
+  //     name: `${queueItem.patient.last_name} ${queueItem.patient.first_name} ${queueItem.patient.middle_name}`,
+  //     ticketNumber: queueItem.ticket.ticket_number,
+  //   });
+  // };
+
+  const callNextPatient = async () => {
+    try {
+      const res = await axios.post(
+        `http://localhost:8000/queue/${doctorId}/call-next`
+      );
+      console.log(res.data)
+      setCurrentPatient({
+        name: `${res.data.patient.last_name} ${res.data.patient.first_name} ${res.data.patient.middle_name}`,
+        ticketNumber: res.data.ticket_number,
+      });
+      fetchQueue()
+    } catch (err) {
+      console.log("ERR!", err);
+    }
+  };
+
+  const callPatient = async (queueItem) => {
+    try {
+      const res = await axios.post(`http://localhost:8000/queue/${doctorId}/call/${queueItem.patient.id}`);
+      setCurrentPatient({
+      name: `${queueItem.patient.last_name} ${queueItem.patient.first_name} ${queueItem.patient.middle_name}`,
+      content: queueItem.patient.content,
+      ticketNumber: queueItem.ticket.ticket_number,
+    });
+    fetchQueue()
+    } catch(err) {
+      console.log("ERR! ", err)
+    }
+  }
+
+  return (
+    <div className="container py-4">
+      <div className="row">
+        <PatientInfo currentPatient={currentPatient} />
+        <PatientQueue queue={queue} callPatient={callPatient} callNextPatient={callNextPatient}/>
+      </div>
+    </div>
+  );
+};
+
+export default DoctorAccountStyle;
+import React, { useEffect, useState } from "react";
+import "./style/CallBoxStyle.css";
+
+const CallBox = () => {
+  const [calls, setCalls] = useState([]);
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://127.0.0.1/ws");
+    ws.onopen = () => console.log("WEBSOKET CONNECTED");
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("new: ", data);
+
+      setCalls((prev) => [...prev, data]);
+
+      alert(
+        `Пациент ${data.patient.last_name}, вызван в кабинет ${data.office}`
+      );
+    };
+    ws.onclose = () => console.log("WEBSOKEN DISCONNECT");
+    return () => ws.close();
+  }, []);
+
+  return (
+    <div className="wrap">
+      <div className="columns-head" aria-hidden="true">
+        <div>Пациент</div>
+        <div>Кабинет</div>
+        <div>Специалист</div>
+      </div>
+
+      <section className="rows" aria-live="polite">
+        {calls.map((call, idx) => (
+          <div className="row" key={idx}>
+            <div className="ticket">{call.ticketNumber}</div>
+            <div className="middle">
+              <span className="arrow">→</span>
+              <span className="room">{call.office}</span>
+            </div>
+            <div className="doctor">
+              {call.doctor.last_name} {call.doctor.first_name} <br />
+              {call.doctor.middle_name}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+};
+
+export default CallBox;
+
